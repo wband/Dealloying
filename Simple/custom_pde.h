@@ -132,8 +132,8 @@ private:
             if (dim == 2)
               {
                 double ys = ly * 3.0 / 4.0 - y +
-                            std::cos(2.0 * pi * (2.845 * x + 1.0) / lx) * ly / 40.0 +
-                            std::cos(2.0 * pi * (7.123 * x) / lx) * ly / 80.0;
+                            std::cos(2.0 * pi * (2.845 * x + 1.0) / lx) * lx / 80.0 +
+                            std::cos(2.0 * pi * (7.123 * x) / lx) * lx / 160.0;
                 //   double phi = 0.5 * (1.0 + sin(pi * max(-0.5, min(0.5,  ys /l_int))));
                 /*     double y_shift =
                           (  sin( 4.0*pi * (x/lx + 0.28)) * amplitude
@@ -328,7 +328,7 @@ private:
     using std::min;
     using std::sin;
     constexpr double pi = 3.14159265359;
-    return 0.5 * (1.0 + sin(pi * max(-0.5, min(0.5, x / l_int))));
+    return 0.5 * (1.0 + sin(pi * max(-0.5, min(0.5, x / 1.1/ l_int))));
   }
 };
 

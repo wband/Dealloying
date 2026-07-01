@@ -1,6 +1,6 @@
 subsection Rectangular mesh
-  set x size = 42.0
-  set y size = 42.0
+  set x size = 84.0
+  set y size = 84.0
   set z size = 10.0
   set periodic x = false
   set periodic y = false
@@ -9,13 +9,13 @@ subsection Rectangular mesh
   set y subdivisions = 1
 end
 
-set global refinement = 8
-set max refinement = 8
-set min refinement = 3
-set mesh adaptivity   = true
+set global refinement = 9
+set max refinement = 3
+set min refinement = 1
+set mesh adaptivity   = false
 set remeshing period  = 80
 
-set time step = 2e-6
+set time step = 1e-5
 set number steps = 1000000
 
 subsection output
@@ -31,32 +31,31 @@ end
 
 set Model constant deltaG0 = -1.0, DOUBLE
 set Model constant D1 = 1, DOUBLE
-set Model constant D1s = 10, DOUBLE
-set Model constant D2 = 50, DOUBLE
-set Model constant j0 = 1.1e-2, DOUBLE
+set Model constant D1s = 20, DOUBLE
+set Model constant D2 = 100, DOUBLE
+set Model constant j0 = 1.2e-2, DOUBLE
 set Model constant l_int = 1.5, DOUBLE
-set Model constant x1_init = 0.2, DOUBLE
-set Model constant x2_init = 0.05, DOUBLE
-set Model constant epsilon = 1e-4, DOUBLE
+set Model constant x1_init = 0.6, DOUBLE
+set Model constant x2_init = 0.01, DOUBLE
+set Model constant epsilon = 1e-3, DOUBLE
 
 subsection refinement criterion: 0
   set type              = value
-
   set value lower bound = 0.001
   set value upper bound = 0.999
   set variables         = n
 end
 
-set read initial conditions from file = false
+set read initial conditions from file = true
 
 subsection initial condition file 1
   set file name = dealloy_n.in
   set dataset format = flat_binary
   set file variable names = n
   set simulation variable names = n
-  set data points in x direction = 257
-  set data points in y direction = 257
-  set data points in z direction = 257
+  set data points in x direction = 513
+  set data points in y direction = 513
+  set data points in z direction = 513
 end
 
 subsection initial condition file 2
@@ -64,9 +63,9 @@ subsection initial condition file 2
   set dataset format = flat_binary
   set file variable names = x1
   set simulation variable names = x1
-  set data points in x direction = 257
-  set data points in y direction = 257
-  set data points in z direction = 257
+  set data points in x direction = 513
+  set data points in y direction = 513
+  set data points in z direction = 513
 end
 
 subsection initial condition file 3
@@ -74,7 +73,7 @@ subsection initial condition file 3
   set dataset format = flat_binary
   set file variable names = x2
   set simulation variable names = x2
-  set data points in x direction = 257
-  set data points in y direction = 257
-  set data points in z direction = 257
+  set data points in x direction = 513
+  set data points in y direction = 513
+  set data points in z direction = 513
 end
