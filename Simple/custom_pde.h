@@ -210,10 +210,10 @@ private:
         // x1
         variable_list.set_value_term(
             1,
-            x1 + dt * (D1 * (1.0 + 8.0 / l_int * (1.0 - n) * (D1s - D1)) * x1_grad * n_grad + rxn) /
+            x1 + dt * ((D1 + 8.0 / l_int * (1.0 - n) * D1s) * x1_grad * n_grad + rxn) /
                      n);
         variable_list.set_gradient_term(
-            1, dt * (-D1 * (1.0 + 8.0 / l_int * (1.0 - n) * (D1s - D1)) * x1_grad));
+            1, dt * (-(D1 + 8.0 / l_int * (1.0 - n) * D1s) * x1_grad));
 
         // x2
         variable_list.set_value_term(2, x2 + dt * (-D2 * x2_grad * n_grad - rxn) / (1.0 - n));

@@ -1,6 +1,7 @@
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import scipy.fft as fft
+import sys
 from scipy.ndimage import distance_transform_edt
 
 l_int = 1.5
@@ -12,7 +13,7 @@ nx = 513
 ny = 513
 nxhalf = 513
 rng = np.random.default_rng(seed=1990)
-h0half = rng.normal(loc=0.0, scale=5.0, size=(nxhalf))
+h0half = rng.normal(loc=0.0, scale=8.0, size=(nxhalf))
 h0 = np.concatenate((h0half[:-1],np.flipud(h0half)))
 #plt.plot(h0)
 hf = fft.fftshift(fft.fft(h0))
@@ -56,11 +57,15 @@ for i in range(nx):
     for j in range(ny): 
         field[i,j] = interface(dist[i,j]*Lx/float(nx))
 
+x1_val=0.2
+if len(sys.argv) > 1:
+    x1_val=float(sys.argv[1])
+
 f = open("dealloy_n.in",'wb')
 f.write(field.tobytes(order='F'))
 f.close()
 
-x1 = np.ones_like(field)*0.6
+x1 = np.ones_like(field)*x1_val
 f = open("dealloy_x1.in",'wb')
 f.write(x1.tobytes(order='F'))
 f.close()

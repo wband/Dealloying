@@ -2,6 +2,7 @@ import numpy as np
 import pyvista as pv
 import pandas as pd
 import os
+import sys
 
 def vtutopython(filename, scalars=[], vectors=[], resample=[], dim=2):
 
@@ -172,7 +173,12 @@ def vtutopython(filename, scalars=[], vectors=[], resample=[], dim=2):
 
         return outputs
 
-outs = vtutopython("solutions/solution_0870964.vtu",
+if len(sys.argv) > 1:
+    fpath=sys.argv[1]
+else:
+    fpath="solutions/solution_16000000.vtu"
+
+outs = vtutopython(fpath,
                    scalars=['n','x1','x2'],dim=2)
 
 print(outs.keys())
