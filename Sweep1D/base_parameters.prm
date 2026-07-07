@@ -1,0 +1,36 @@
+subsection Rectangular mesh
+  set x size = __LX__
+  set y size = __LY__
+  set periodic x = false
+  set periodic y = false
+  set periodic z = false
+  set x subdivisions = 64
+  set y subdivisions = 1
+end
+
+set global refinement = 1
+set mesh adaptivity   = false
+
+set time step = __DT__
+set number steps = 1000000
+
+subsection output
+  set condition = EQUAL_SPACING
+  set number = 20
+  set file type = vtu
+end
+
+subsection boundary conditions: 0
+  set variables = x2
+  set conditions = Natural, Natural, Natural, Dirichlet
+end
+
+set Model constant deltaG0 = __DELTAG0__, DOUBLE
+set Model constant D1 = 1, DOUBLE
+set Model constant D1s = 0, DOUBLE
+set Model constant D2 = __D2__, DOUBLE
+set Model constant j0 = 1.1e-2, DOUBLE
+set Model constant l_int = __L_INT__, DOUBLE
+set Model constant x1_init = __X1__, DOUBLE
+set Model constant x2_init = __X2__, DOUBLE
+set Model constant epsilon = 1e-4, DOUBLE
