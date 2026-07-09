@@ -143,6 +143,8 @@ private:
               [[maybe_unused]] const SimulationTimer               &sim_timer,
               [[maybe_unused]] unsigned int                         solve_block_id) const override
   {
+    const dealii::Tensor<1, dim> &mesh_size =
+        get_user_inputs().spatial_discretization.rectangular_mesh.size;
     constexpr double pi = 3.14159265359;
     const number     dt = sim_timer.get_timestep();
     if (solve_block_id == 0) // n, x
@@ -213,9 +215,13 @@ private:
     else if (solve_block_id == 3) // pp
       {
         const ScalarValue n  = variable_list.template get_value<Scalar, Current>(0);
+        const ScalarGrad  n_grad = variable_list.template get_gradient<Scalar, Current>(0);
         const ScalarValue x1 = variable_list.template get_value<Scalar, Current>(1);
         const ScalarValue x2 = variable_list.template get_value<Scalar, Current>(2);
         variable_list.set_value_term(5, n * x1 + (1.0 - n) * x2);
+        variable_list.set_value_term(6, 4.0 * gamma/l_int * (n * (1.0 - n)
+                             + l_int * l_int / (pi * pi) * n_grad.norm_square()));
+        variable_list.set_value_term(7, n * (1.0 - x1));
       }
   }
 

@@ -34,7 +34,8 @@ main(int argc, char *argv[])
       FieldAttributes("rxn"),    //
       FieldAttributes("deltaG"), //
       FieldAttributes("x_total"),//
-      FieldAttributes("interface_stability_factor") //
+      FieldAttributes("Gamma"),
+      FieldAttributes("x_Ni") //
   };
 
   SolveBlock main_fields(0, Explicit, Initialized, {0, 1, 2});
@@ -48,7 +49,7 @@ main(int argc, char *argv[])
   SolveBlock rxn(2, Explicit, Uninitialized, {3});
   rxn.dependencies_rhs = make_dependency_set(fields, {"n", "grad(n)", "deltaG"});
 
-  SolveBlock pp(3, Explicit, PostProcess, {5, 6});
+  SolveBlock pp(3, Explicit, PostProcess, {5, 6, 7});
   pp.dependencies_rhs = make_dependency_set(fields, {"n", "grad(n)", "x1", "x2"});
 
   std::vector<SolveBlock> solve_blocks({main_fields, deltaG, rxn, pp});

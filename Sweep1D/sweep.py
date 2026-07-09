@@ -4,15 +4,17 @@ import os
 import sys
 import subprocess
 
+# intended invocation: python sweep.py [chunk_index] [total_chunks]
+
 # --- Configuration ---
-D2_vals = [1.0, 10.0, 100.0]
-deltaG0_vals = [0.0, 0.5, 1.0, 2.0]
-x1_vals = [0.2, 0.6]
-x2_vals = [0.2, 0.05, 0.01]
-l_int_vals = [4.0, 2.0, 1.0, 0.5, 0.25]  # <--- Add your l_int values here
+D2_vals = [100.0, 500.0]
+deltaG0_vals = [1.0]
+x1_vals = [0.6]
+x2_vals = [0.01]
+l_int_vals = [0.25, 0.5, 1.0]  # <--- Add your l_int values here
 
 INITIAL_DT = 2.048e-4
-MIN_DT = 1e-8
+MIN_DT = 1e-10
 DT_REDUCTION_FACTOR = 0.5
 
 TEMPLATE_PRM = "base_parameters.prm"
