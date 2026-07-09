@@ -16,6 +16,7 @@ SWEEP_PARAMETERS = {
     "X2": [0.05],
     "L_INT": [1.5, 1.0],
     "D1S": [1.0, 0.0],
+    "DEL": [0, 1, 2],
     # "NEW_PARAM": [100, 200]  <-- Adding a new parameter is now this easy!
 }
 
@@ -26,7 +27,7 @@ OUTPUT_VARIABLES = {
     "Ni_fraction": (7, True),
 }
 
-TIME_SCALE = 0.001
+TIME_SCALE = 1.0
 MAX_ITERS = 16000000
 INITIAL_DT = 2.048e-4
 MIN_DT = 1e-10

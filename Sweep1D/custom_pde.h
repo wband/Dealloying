@@ -53,6 +53,7 @@ public:
   number x1_init;
   number x2_init;
   number epsilon; // small number to avoid division by zero
+  int int_delta;
 
   // NiCr Thermo
   NiCrThermo::Isothermal nicr_energy;
@@ -70,7 +71,8 @@ public:
         l_int(get_user_inputs().user_constants.get_double("l_int")),
         x1_init(get_user_inputs().user_constants.get_double("x1_init")),
         x2_init(get_user_inputs().user_constants.get_double("x2_init")),
-        epsilon(get_user_inputs().user_constants.get_double("epsilon"))
+        epsilon(get_user_inputs().user_constants.get_double("epsilon")),
+        int_delta(get_user_inputs().user_constants.get_int("int_delta"))
   {
     nicr_energy.set_temperature(RT / NiCrThermo::R);
   }
@@ -202,13 +204,25 @@ private:
         ScalarValue n      = variable_list.template get_value<Scalar, Current>(0);
         ScalarGrad  n_grad = variable_list.template get_gradient<Scalar, Current>(0);
         ScalarValue deltaG = variable_list.template get_value<Scalar, Current>(4);
-
-        ScalarValue rxn_val = -n_grad.norm_square() * n * (1.0 - n) *
-                              (128.0 * l_int / (pi * pi) / 3.0) * Vmfact * j0 * (-deltaG);
-        // alternative 'localization functions' with worse time-step restrictions
-        //     ScalarValue rxn_val = -n_grad.norm() * Vmj0 * (-deltaG);
-        //     ScalarValue rxn_val = -n_grad.norm_square() * (8.0 * l_int/(pi*pi)) * Vmj0 *
-        //     (-deltaG);
+        ScalarValue rxn_val;
+        switch (int_delta)
+          {
+          case 0:
+            rxn_val = -n_grad.norm_square() * n * (1.0 - n) *
+               (128.0 * l_int / (pi * pi) / 3.0) * Vmfact * j0 * (-deltaG);
+            break;
+          case 1:
+            rxn_val = -n_grad.norm() * Vmfact * j0 * (-deltaG);
+            break;
+          case 2:
+            rxn_val = -n_grad.norm_square() * (8.0 * l_int/(pi*pi)) 
+               * Vmfact * j0 * (-deltaG);
+            break;
+          default:
+            rxn_val = -n_grad.norm_square() * n * (1.0 - n) *
+               (128.0 * l_int / (pi * pi) / 3.0) * Vmfact * j0 * (-deltaG);
+            break;
+          }
         constrain_dvaldt(n, rxn_val, dt, lower, upper);
         variable_list.set_value_term(3, rxn_val);
       }

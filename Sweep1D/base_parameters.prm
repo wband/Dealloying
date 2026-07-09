@@ -34,3 +34,4 @@ set Model constant l_int = __L_INT__, DOUBLE
 set Model constant x1_init = __X1__, DOUBLE
 set Model constant x2_init = __X2__, DOUBLE
 set Model constant epsilon = 1e-4, DOUBLE
+set Model constant int_delta = __DEL__, INT
