@@ -56,6 +56,7 @@ public:
   number zeta; // weighting factor for laplacian nonlocalization
   int int_delta;
   bool x_in_rxn;
+  bool tavg_denom;
 
   // NiCr Thermo
   NiCrThermo::Isothermal nicr_energy;
@@ -76,7 +77,8 @@ public:
         epsilon(get_user_inputs().user_constants.get_double("epsilon")),
         zeta(get_user_inputs().user_constants.get_double("zeta")),
         int_delta(get_user_inputs().user_constants.get_int("int_delta")),
-        x_in_rxn(get_user_inputs().user_constants.get_bool("x_in_rxn"))
+        x_in_rxn(get_user_inputs().user_constants.get_bool("x_in_rxn")),
+        tavg_denom(get_user_inputs().user_constants.get_bool("tavg_denom"))
   {
     nicr_energy.set_temperature(RT / NiCrThermo::R);
   }
@@ -152,7 +154,7 @@ private:
     const dealii::Tensor<1, dim> &mesh_size =
         get_user_inputs().spatial_discretization.rectangular_mesh.size;
     const ScalarValue dx = mesh_size[0]/
-         (get_user_inputs().spatial_discretization.rectangular_mesh.n_subdivisions[0]
+         (get_user_inputs().spatial_discretization.rectangular_mesh.subdivisions[0]
          *std::pow(2.0, get_user_inputs().spatial_discretization.global_refinement));
     constexpr double pi = 3.14159265359;
     const number     dt = sim_timer.get_timestep();
@@ -168,8 +170,17 @@ private:
         const ScalarValue lap_n   = variable_list.template get_value<Scalar, OldOne>(4);
         const ScalarGrad  grad_lap_n = variable_list.template get_gradient<Scalar, OldOne>(4);
         const ScalarValue lap_n_coeff = dx * dx / (2.0 * number(dim));
-        ScalarValue mod_n = n + zeta * lap_n_coeff * lap_n;
-        ScalarGrad mod_n_grad = n_grad + zeta * lap_n_coeff * grad_lap_n;
+        ScalarValue mod_n = n;
+        ScalarGrad mod_n_grad = n_grad;
+        if (tavg_denom)
+          {
+            ScalarValue mod_n = n + dt * rxn/2.0;
+          }
+        else
+          {
+            mod_n = n + zeta * lap_n_coeff * lap_n;
+            mod_n_grad = n_grad + zeta * lap_n_coeff * grad_lap_n;
+          }
         // n
         variable_list.set_value_term(0, n + dt * rxn);
 
