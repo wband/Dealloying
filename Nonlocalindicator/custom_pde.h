@@ -151,7 +151,9 @@ private:
   {
     const dealii::Tensor<1, dim> &mesh_size =
         get_user_inputs().spatial_discretization.rectangular_mesh.size;
-    const ScalarValue element_volume = variable_list.get_element_volume();
+    const ScalarValue dx = mesh_size[0]/
+         (get_user_inputs().spatial_discretization.rectangular_mesh.n_subdivisions[0]
+         *std::pow(2.0, get_user_inputs().spatial_discretization.global_refinement));
     constexpr double pi = 3.14159265359;
     const number     dt = sim_timer.get_timestep();
     if (solve_block_id == 0) // n, x
@@ -165,7 +167,7 @@ private:
         const ScalarValue rxn     = variable_list.template get_value<Scalar, OldOne>(3);
         const ScalarValue lap_n   = variable_list.template get_value<Scalar, OldOne>(4);
         const ScalarGrad  grad_lap_n = variable_list.template get_gradient<Scalar, OldOne>(4);
-        const ScalarValue lap_n_coeff = element_volume / (2.0 * number(dim));
+        const ScalarValue lap_n_coeff = dx * dx / (2.0 * number(dim));
         ScalarValue mod_n = n + zeta * lap_n_coeff * lap_n;
         ScalarGrad mod_n_grad = n_grad + zeta * lap_n_coeff * grad_lap_n;
         // n
@@ -243,7 +245,7 @@ private:
         const ScalarValue x1 = variable_list.template get_value<Scalar, Current>(1);
         const ScalarValue x2 = variable_list.template get_value<Scalar, Current>(2);
         const ScalarValue lap_n = variable_list.template get_value<Scalar, Current>(4);
-        const ScalarValue lap_n_coeff = element_volume / (2.0 * number(dim));
+        const ScalarValue lap_n_coeff = dx * dx / (2.0 * number(dim));
         ScalarValue mod_n = n + zeta * lap_n_coeff * lap_n;
         variable_list.set_value_term(5, mod_n * x1 + (1.0 - mod_n) * x2);
         variable_list.set_value_term(6, 4.0 * gamma/l_int * (n * (1.0 - n)
