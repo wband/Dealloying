@@ -55,6 +55,7 @@ public:
   number epsilon; // small number to avoid division by zero
   number zeta; // weighting factor for laplacian nonlocalization
   int int_delta;
+  bool x_in_rxn;
 
   // NiCr Thermo
   NiCrThermo::Isothermal nicr_energy;
@@ -74,7 +75,8 @@ public:
         x2_init(get_user_inputs().user_constants.get_double("x2_init")),
         epsilon(get_user_inputs().user_constants.get_double("epsilon")),
         zeta(get_user_inputs().user_constants.get_double("zeta")),
-        int_delta(get_user_inputs().user_constants.get_int("int_delta"))
+        int_delta(get_user_inputs().user_constants.get_int("int_delta")),
+        x_in_rxn(get_user_inputs().user_constants.get_bool("x_in_rxn"))
   {
     nicr_energy.set_temperature(RT / NiCrThermo::R);
   }
@@ -149,6 +151,7 @@ private:
   {
     const dealii::Tensor<1, dim> &mesh_size =
         get_user_inputs().spatial_discretization.rectangular_mesh.size;
+    const ScalarValue element_volume = variable_list.get_element_volume();
     constexpr double pi = 3.14159265359;
     const number     dt = sim_timer.get_timestep();
     if (solve_block_id == 0) // n, x
@@ -162,8 +165,6 @@ private:
         const ScalarValue rxn     = variable_list.template get_value<Scalar, OldOne>(3);
         const ScalarValue lap_n   = variable_list.template get_value<Scalar, OldOne>(4);
         const ScalarGrad  grad_lap_n = variable_list.template get_gradient<Scalar, OldOne>(4);
-        const ScalarValue element_volume = variable_list.get_element_volume();
-
         const ScalarValue lap_n_coeff = element_volume / (2.0 * number(dim));
         ScalarValue mod_n = n + zeta * lap_n_coeff * lap_n;
         ScalarGrad mod_n_grad = n_grad + zeta * lap_n_coeff * grad_lap_n;
@@ -173,7 +174,7 @@ private:
         // x1
         variable_list.set_value_term(
             1, x1 + dt * (D1 * x1_grad * mod_n_grad/mod_n
-                      + 8.0 / l_int * (1.0 - 2.0 * n) * D1s * x1_grad * n_grad/mod_n
+                      + 8.0 / l_int * (1.0 - n) * D1s * x1_grad * n_grad/mod_n
                       + rxn / mod_n));
         variable_list.set_gradient_term(
             1, dt * (-(D1 + 8.0 / l_int * n * (1.0 - n)/mod_n * D1s) * x1_grad));
@@ -208,24 +209,28 @@ private:
         const ScalarValue deltaG =
             (mu2_chem - mu1_chem) / RT + 4.0 * Vmfact * gamma / RT / l_int * (2.0 * n - 1.0)
             + 8.0 * Vmfact * gamma / RT * l_int / (pi * pi) * lap_n;
-
+        ScalarValue x_prefact(1.0);
+        if (x_in_rxn)
+          {
+            x_prefact = x1 * x2/0.01;
+          }
         ScalarValue rxn_val;
         switch (int_delta)
           {
           case 0:
             rxn_val = -n_grad.norm_square() * n * (1.0 - n) *
-               (128.0 * l_int / (pi * pi) / 3.0) * Vmfact * j0 * (-deltaG);
+               (128.0 * l_int / (pi * pi) / 3.0) * x_prefact * Vmfact * j0 * (-deltaG);
             break;
           case 1:
-            rxn_val = -n_grad.norm() * Vmfact * j0 * (-deltaG);
+            rxn_val = -n_grad.norm() * Vmfact * j0 * x_prefact * (-deltaG);
             break;
           case 2:
             rxn_val = -n_grad.norm_square() * (8.0 * l_int/(pi*pi)) 
-               * Vmfact * j0 * (-deltaG);
+               * Vmfact * j0 * x_prefact * (-deltaG);
             break;
           default:
             rxn_val = -n_grad.norm_square() * n * (1.0 - n) *
-               (128.0 * l_int / (pi * pi) / 3.0) * Vmfact * j0 * (-deltaG);
+               (128.0 * l_int / (pi * pi) / 3.0) * Vmfact * x_prefact * j0 * (-deltaG);
             break;
           }
         constrain_dvaldt(n, rxn_val, dt, lower, upper);
@@ -238,10 +243,12 @@ private:
         const ScalarValue x1 = variable_list.template get_value<Scalar, Current>(1);
         const ScalarValue x2 = variable_list.template get_value<Scalar, Current>(2);
         const ScalarValue lap_n = variable_list.template get_value<Scalar, Current>(4);
-        variable_list.set_value_term(5, n * x1 + (1.0 - n) * x2);
+        const ScalarValue lap_n_coeff = element_volume / (2.0 * number(dim));
+        ScalarValue mod_n = n + zeta * lap_n_coeff * lap_n;
+        variable_list.set_value_term(5, mod_n * x1 + (1.0 - mod_n) * x2);
         variable_list.set_value_term(6, 4.0 * gamma/l_int * (n * (1.0 - n)
                              + l_int * l_int / (pi * pi) * n_grad.norm_square()));
-        variable_list.set_value_term(7, n * (1.0 - x1));
+        variable_list.set_value_term(7, mod_n * (1.0 - x1));
       }
   }
 
