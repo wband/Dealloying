@@ -25,16 +25,16 @@ subsection boundary conditions: 0
   set conditions = Dirichlet, Natural, Natural, Natural
 end
 
-set Model constant deltaG0 = __DELTAG0__, DOUBLE
+set Model constant deltaG0 = 1.0, DOUBLE
 set Model constant D1 = 1, DOUBLE
-set Model constant D1s = __D1S__, DOUBLE
-set Model constant D2 = __D2__, DOUBLE
+set Model constant D1s = 0.0, DOUBLE
+set Model constant D2 = 500.0, DOUBLE
 set Model constant j0 = 1.1e-2, DOUBLE
 set Model constant l_int = __L_INT__, DOUBLE
-set Model constant x1_init = __X1__, DOUBLE
-set Model constant x2_init = __X2__, DOUBLE
-set Model constant epsilon = 1e-6, DOUBLE
+set Model constant x1_init = 0.6, DOUBLE
+set Model constant x2_init = 0.01, DOUBLE
+set Model constant epsilon = __EPS__, DOUBLE
 set Model constant zeta = 0.0, DOUBLE
 set Model constant int_delta = __DEL__, INT
 set Model constant x_in_rxn = FALSE, BOOL
-set Model constant tavg_denom = TRUE, BOOL
+set Model constant tavg_denom = __TD__, INT

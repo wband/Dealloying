@@ -56,7 +56,7 @@ public:
   number zeta; // weighting factor for laplacian nonlocalization
   int int_delta;
   bool x_in_rxn;
-  bool tavg_denom;
+  int tavg_denom;
 
   // NiCr Thermo
   NiCrThermo::Isothermal nicr_energy;
@@ -78,7 +78,7 @@ public:
         zeta(get_user_inputs().user_constants.get_double("zeta")),
         int_delta(get_user_inputs().user_constants.get_int("int_delta")),
         x_in_rxn(get_user_inputs().user_constants.get_bool("x_in_rxn")),
-        tavg_denom(get_user_inputs().user_constants.get_bool("tavg_denom"))
+        tavg_denom(get_user_inputs().user_constants.get_int("tavg_denom"))
   {
     nicr_energy.set_temperature(RT / NiCrThermo::R);
   }
@@ -172,14 +172,22 @@ private:
         const ScalarValue lap_n_coeff = dx * dx / (2.0 * number(dim));
         ScalarValue mod_n = n;
         ScalarGrad mod_n_grad = n_grad;
-        if (tavg_denom)
+        switch (tavg_denom)
           {
-            ScalarValue mod_n = n + dt * rxn/2.0;
-          }
-        else
-          {
+          case 0:
             mod_n = n + zeta * lap_n_coeff * lap_n;
             mod_n_grad = n_grad + zeta * lap_n_coeff * grad_lap_n;
+            break;
+          case 1:
+            mod_n = n + dt * rxn/2.0;
+            break;
+          case 2:
+            mod_n = n + dt * rxn;
+            break;
+          default:
+            mod_n = n + zeta * lap_n_coeff * lap_n;
+            mod_n_grad = n_grad + zeta * lap_n_coeff * grad_lap_n;
+            break;
           }
         // n
         variable_list.set_value_term(0, n + dt * rxn);

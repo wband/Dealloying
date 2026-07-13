@@ -8,13 +8,15 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 
 # --- Central Configuration ---
 SWEEP_PARAMETERS = {
-    "D2": [500.0],
-    "DELTAG0": [1.0, 0.0],
-    "X1": [0.6],
-    "X2": [0.01],
+ #   "D2": [500.0],
+ #   "DELTAG0": [1.0],
+ #   "X1": [0.6, 0.2],
+ #   "X2": [0.01],
     "L_INT": [1.0, 0.75, 0.5, 0.25],
-    "D1S": [0.0, 5.0],
+ #   "D1S": [0.0, 5.0],
     "DEL": [0, 1, 2],
+    "TD": [0, 1, 2],
+    "EPS": [1e-3, 1e-4, 1e-5],
     # "NEW_PARAM": [100, 200]  <-- Adding a new parameter is now this easy!
 }
 
@@ -27,9 +29,9 @@ OUTPUT_VARIABLES = {
 
 N_PROCESSES = 8
 TIME_SCALE = 1.0
-MAX_ITERS = 1000 ##16000000
+MAX_ITERS = 16000000
 INITIAL_DT = 2.048e-4
-MIN_DT = 1e-10
+MIN_DT = 1e-9
 DT_REDUCTION_FACTOR = 0.5
 
 TEMPLATE_PRM = "base_parameters.prm"
@@ -91,7 +93,7 @@ def run_single_combination(param_dict):
         cmd = [EXE_PATH, "-i", "parameters.prm"]
         
         try:
-            result = subprocess.run(cmd, check=True, capture_output=True, text=True, cwd=attempt_dir, timeout=300)
+            result = subprocess.run(cmd, check=True, capture_output=True, text=True, cwd=attempt_dir, timeout=3600)
             with open(os.path.join(attempt_dir, "stdout.log"), "w") as f:
                 f.write(result.stdout)
             success = True
