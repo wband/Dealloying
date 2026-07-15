@@ -5,6 +5,7 @@ import os
 import subprocess
 import re
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from pathlib import Path
 
 # --- Central Configuration ---
 SWEEP_PARAMETERS = {
@@ -12,7 +13,7 @@ SWEEP_PARAMETERS = {
  #   "DELTAG0": [1.0],
  #   "X1": [0.6, 0.2],
  #   "X2": [0.01],
-    "L_INT": [0.75, 0.5, 0.4, 0.3],
+    "L_INT": [1.0, 0.75, 0.5, 0.4, 0.3],
     "D1S": [0.0, 5.0],
     "DEL": [0, 1, 2],
     "EPS": [1e-3, 1e-4, 1e-5],
@@ -107,6 +108,8 @@ def run_single_combination(param_dict):
         except subprocess.CalledProcessError as e:
             with open(os.path.join(attempt_dir, "crash_stderr.log"), "w") as f:
                 f.write(e.stderr)
+            for file in Path(attempt_dir).glob("core.*"):
+                file.unlink()
             status_msg = f"Crash ({e.returncode})"
             dt *= DT_REDUCTION_FACTOR
 

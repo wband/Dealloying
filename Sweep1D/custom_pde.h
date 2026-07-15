@@ -176,10 +176,6 @@ private:
         const ScalarValue x2      = variable_list.template get_value<Scalar, OldOne>(2);
         const ScalarGrad  x2_grad = variable_list.template get_gradient<Scalar, OldOne>(2);
         const ScalarValue rxn     = variable_list.template get_value<Scalar, OldOne>(3);
-        const ScalarGrad  rxn_grad = variable_list.template get_gradient<Scalar, OldOne>(2);
-        const ScalarValue lap_n   = variable_list.template get_value<Scalar, OldOne>(4);
-        const ScalarGrad  grad_lap_n = variable_list.template get_gradient<Scalar, OldOne>(4);
-        const ScalarValue lap_n_coeff = dx * dx / (2.0 * number(dim));
         // n
         variable_list.set_value_term(0, n + dt * rxn);
 
@@ -189,7 +185,7 @@ private:
                       + 8.0 / l_int * (1.0 - n) * D1s * x1_grad * n_grad
                       + rxn * (1.0 - x1))/ n);
         variable_list.set_gradient_term(
-            1, dt * (-(D1 + 8.0 / l_int * n * (1.0 - n)/n * D1s) * x1_grad));
+            1, dt * (-(D1 + 8.0 / l_int * (1.0 - n) * D1s) * x1_grad));
 
         // x2
         variable_list.set_value_term(2, x2 + dt * (-D2 * x2_grad * n_grad - rxn * (1.0 - x2)) / (1.0 - n));
@@ -286,8 +282,6 @@ private:
         const ScalarGrad  n_grad = variable_list.template get_gradient<Scalar, Current>(0);
         const ScalarValue x1 = variable_list.template get_value<Scalar, Current>(1);
         const ScalarValue x2 = variable_list.template get_value<Scalar, Current>(2);
-        const ScalarValue lap_n = variable_list.template get_value<Scalar, Current>(4);
-        const ScalarValue lap_n_coeff = dx * dx / (2.0 * number(dim));
         variable_list.set_value_term(5, n * x1 + (1.0 - n) * x2);
         if (well_type == 0)
           {
