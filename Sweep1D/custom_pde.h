@@ -54,6 +54,10 @@ public:
   number x2_init;
   number epsilon; // small number to avoid division by zero
   int int_delta;
+  int x_in_rxn;
+  int well_type;
+  bool constrain_x;
+
 
   // NiCr Thermo
   NiCrThermo::Isothermal nicr_energy;
@@ -72,7 +76,10 @@ public:
         x1_init(get_user_inputs().user_constants.get_double("x1_init")),
         x2_init(get_user_inputs().user_constants.get_double("x2_init")),
         epsilon(get_user_inputs().user_constants.get_double("epsilon")),
-        int_delta(get_user_inputs().user_constants.get_int("int_delta"))
+        int_delta(get_user_inputs().user_constants.get_int("int_delta")),
+        x_in_rxn(get_user_inputs().user_constants.get_int("x_in_rxn")),
+        well_type(get_user_inputs().user_constants.get_int("well_type")),
+        constrain_x(get_user_inputs().user_constants.get_bool("constrain_x"))
   {
     nicr_energy.set_temperature(RT / NiCrThermo::R);
   }
@@ -109,7 +116,15 @@ private:
     if (index == 0)
       {
         double dist  = x - lx / 2.0;
-        double phi   = interface(dist);
+        double phi  = 0.0;
+        if (well_type == 0)
+          {
+            phi   = interface(dist);
+          }
+        else if (well_type == 1)
+          {
+            phi   = interface2(dist);
+          }
         scalar_value = max(min(phi, 1.0 - epsilon), epsilon);
         return;
       }
@@ -147,6 +162,9 @@ private:
   {
     const dealii::Tensor<1, dim> &mesh_size =
         get_user_inputs().spatial_discretization.rectangular_mesh.size;
+    const ScalarValue dx = mesh_size[0]/
+         (get_user_inputs().spatial_discretization.rectangular_mesh.subdivisions[0]
+         *std::pow(2.0, get_user_inputs().spatial_discretization.global_refinement));
     constexpr double pi = 3.14159265359;
     const number     dt = sim_timer.get_timestep();
     if (solve_block_id == 0) // n, x
@@ -158,20 +176,23 @@ private:
         const ScalarValue x2      = variable_list.template get_value<Scalar, OldOne>(2);
         const ScalarGrad  x2_grad = variable_list.template get_gradient<Scalar, OldOne>(2);
         const ScalarValue rxn     = variable_list.template get_value<Scalar, OldOne>(3);
-
+        const ScalarGrad  rxn_grad = variable_list.template get_gradient<Scalar, OldOne>(2);
+        const ScalarValue lap_n   = variable_list.template get_value<Scalar, OldOne>(4);
+        const ScalarGrad  grad_lap_n = variable_list.template get_gradient<Scalar, OldOne>(4);
+        const ScalarValue lap_n_coeff = dx * dx / (2.0 * number(dim));
         // n
         variable_list.set_value_term(0, n + dt * rxn);
 
         // x1
         variable_list.set_value_term(
-            1,
-            x1 + dt * ((D1 + 8.0 / l_int * (1.0 - n) * D1s) * x1_grad * n_grad + rxn) /
-                     n);
+            1, x1 + dt * (D1 * x1_grad * n_grad
+                      + 8.0 / l_int * (1.0 - n) * D1s * x1_grad * n_grad
+                      + rxn * (1.0 - x1))/ n);
         variable_list.set_gradient_term(
-            1, dt * (-(D1 + 8.0 / l_int * (1.0 - n) * D1s) * x1_grad));
+            1, dt * (-(D1 + 8.0 / l_int * n * (1.0 - n)/n * D1s) * x1_grad));
 
         // x2
-        variable_list.set_value_term(2, x2 + dt * (-D2 * x2_grad * n_grad - rxn) / (1.0 - n));
+        variable_list.set_value_term(2, x2 + dt * (-D2 * x2_grad * n_grad - rxn * (1.0 - x2)) / (1.0 - n));
         variable_list.set_gradient_term(2, dt * (-D2 * x2_grad));
       }
     else if (solve_block_id == 1) // delta G
@@ -189,41 +210,74 @@ private:
 
         ScalarValue       mu1_chem = Gm_a.val + (1.0 - x1) * Gm_a.grad[0];
         ScalarValue       mu2_chem = Gm_b.val + (1.0 - x2) * Gm_b.grad[0];
-        const ScalarValue deltaG_val =
-            (mu2_chem - mu1_chem) / RT + 4.0 * Vmfact * gamma / RT / l_int * (2.0 * n - 1.0);
-
-        // const ScalarValue deltaG_val = std::log(x2 / x1 ) + deltaG0 +
-        //                                4.0 * Vmfact * gamma / RT / l_int * (2.0 * n - 1.0);
-        variable_list.set_value_term(4, deltaG_val);
-        variable_list.set_gradient_term(4, -n_grad * 8.0 * Vmfact * gamma / RT * l_int / (pi * pi));
+        const ScalarValue deltaG_val(0.0);
+        if (well_type == 0)
+          {
+            variable_list.set_value_term(4, (mu2_chem - mu1_chem) / RT + 4.0 * Vmfact * gamma / RT / l_int * (2.0 * n - 1.0));
+            variable_list.set_gradient_term(4, -n_grad * 8.0 * Vmfact * gamma / RT * l_int / (pi * pi));
+          }
+        else if (well_type == 1)
+          {
+            const double prefactor = 3.0/std::sqrt(2.0);
+            variable_list.set_value_term(4, (mu2_chem - mu1_chem) / RT
+                + prefactor * Vmfact * gamma / RT / l_int * 8.0 * (4.0 * n * n * n - 6.0 * n * n + 2.0 * n));
+            variable_list.set_gradient_term(4, -n_grad * Vmfact * gamma / RT * l_int * prefactor * 0.5);
+          }
       }
     else if (solve_block_id == 2) // rxn
       {
         number      upper(1.0 - epsilon);
         number      lower(epsilon);
+        number      upper_x(2.0);
+        number      lower_x(1e-8);
         ScalarValue n      = variable_list.template get_value<Scalar, Current>(0);
         ScalarGrad  n_grad = variable_list.template get_gradient<Scalar, Current>(0);
+        const ScalarValue x1     = variable_list.template get_value<Scalar, Current>(1);
+        const ScalarValue x2     = variable_list.template get_value<Scalar, Current>(2);
+
         ScalarValue deltaG = variable_list.template get_value<Scalar, Current>(4);
+        ScalarValue x_prefact(1.0);
+        if (x_in_rxn == 0)
+          {
+            x_prefact = 1.0;
+          }
+        else if (x_in_rxn == 1)
+          {
+            x_prefact = x1 * x2/0.01;
+          }
+        else if (x_in_rxn == 2)
+          {
+            x_prefact = std::pow(x1,0.8)*std::pow(x2/0.01,0.2);
+          }
         ScalarValue rxn_val;
         switch (int_delta)
           {
           case 0:
             rxn_val = -n_grad.norm_square() * n * (1.0 - n) *
-               (128.0 * l_int / (pi * pi) / 3.0) * Vmfact * j0 * (-deltaG);
+               (128.0 * l_int / (pi * pi) / 3.0) * x_prefact * Vmfact * j0 * (-deltaG);
             break;
           case 1:
-            rxn_val = -n_grad.norm() * Vmfact * j0 * (-deltaG);
+            rxn_val = -n_grad.norm() * Vmfact * j0 * x_prefact * (-deltaG);
             break;
           case 2:
             rxn_val = -n_grad.norm_square() * (8.0 * l_int/(pi*pi)) 
-               * Vmfact * j0 * (-deltaG);
+               * Vmfact * j0 * x_prefact * (-deltaG);
             break;
           default:
             rxn_val = -n_grad.norm_square() * n * (1.0 - n) *
-               (128.0 * l_int / (pi * pi) / 3.0) * Vmfact * j0 * (-deltaG);
+               (128.0 * l_int / (pi * pi) / 3.0) * Vmfact * x_prefact * j0 * (-deltaG);
             break;
           }
         constrain_dvaldt(n, rxn_val, dt, lower, upper);
+        if (constrain_x)
+          {
+            ScalarValue dx1dt = rxn_val*(1.0-x1)/n;
+            constrain_dvaldt(x1, dx1dt, dt, lower_x, upper_x);
+            rxn_val = dx1dt * n/(1.0-x1);
+            ScalarValue dx2dt = -rxn_val*(1.0-x2)/(1.0-n);
+            constrain_dvaldt(x2, dx2dt, dt, lower_x, upper_x);
+            rxn_val = -dx2dt * (1.0-n)/(1.0-x2);
+          }
         variable_list.set_value_term(3, rxn_val);
       }
     else if (solve_block_id == 3) // pp
@@ -232,9 +286,19 @@ private:
         const ScalarGrad  n_grad = variable_list.template get_gradient<Scalar, Current>(0);
         const ScalarValue x1 = variable_list.template get_value<Scalar, Current>(1);
         const ScalarValue x2 = variable_list.template get_value<Scalar, Current>(2);
+        const ScalarValue lap_n = variable_list.template get_value<Scalar, Current>(4);
+        const ScalarValue lap_n_coeff = dx * dx / (2.0 * number(dim));
         variable_list.set_value_term(5, n * x1 + (1.0 - n) * x2);
-        variable_list.set_value_term(6, 4.0 * gamma/l_int * (n * (1.0 - n)
+        if (well_type == 0)
+          {
+            variable_list.set_value_term(6, 4.0 * gamma/l_int * (n * (1.0 - n)
                              + l_int * l_int / (pi * pi) * n_grad.norm_square()));
+          }
+        else if (well_type == 1)
+          {
+            variable_list.set_value_term(6, 3.0/std::sqrt(2.0) * gamma/l_int * (4.0 * n * n * n - 6.0 * n * n + 2.0 * n
+                             + l_int * l_int / 8.0 * n_grad.norm_square()));
+          }
         variable_list.set_value_term(7, n * (1.0 - x1));
       }
   }
@@ -300,6 +364,18 @@ private:
     using std::sin;
     constexpr double pi = 3.14159265359;
     return 0.5 * (1.0 + sin(pi * max(-0.5, min(0.5, x / l_int))));
+  }
+
+  template <typename real>
+  const real
+  interface2(const real &x) const
+  {
+    using std::max;
+    using std::min;
+    using std::tanh;
+    using std::sqrt;
+    constexpr double pi = 3.14159265359;
+    return 0.5 * (1.0 + tanh(sqrt(2.0) * 2.0 * x / l_int));
   }
 };
 

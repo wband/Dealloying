@@ -47,7 +47,7 @@ main(int argc, char *argv[])
   deltaG.dependencies_rhs = make_dependency_set(fields, {"n", "grad(n)", "x1", "x2"});
 
   SolveBlock rxn(2, Explicit, Uninitialized, {3});
-  rxn.dependencies_rhs = make_dependency_set(fields, {"n", "grad(n)", "deltaG"});
+  rxn.dependencies_rhs = make_dependency_set(fields, {"n", "grad(n)", "x1", "x2", "deltaG"});
 
   SolveBlock pp(3, Explicit, PostProcess, {5, 6, 7});
   pp.dependencies_rhs = make_dependency_set(fields, {"n", "grad(n)", "x1", "x2"});
