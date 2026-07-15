@@ -1,5 +1,5 @@
 subsection Rectangular mesh
-  set x size = __LX__
+  set x size = 9.6
   set y size = 1.0
   set periodic x = false
   set periodic y = false
@@ -11,8 +11,8 @@ end
 set global refinement = 1
 set mesh adaptivity   = false
 
-set time step = __DT__
-set number steps = __MAXITS__
+set time step = 1e-7
+set number steps = 1000000
 
 subsection output
   set condition = EQUAL_SPACING
@@ -30,11 +30,9 @@ set Model constant D1 = 1, DOUBLE
 set Model constant D1s = 0.0, DOUBLE
 set Model constant D2 = 500.0, DOUBLE
 set Model constant j0 = 1.1e-2, DOUBLE
-set Model constant l_int = __L_INT__, DOUBLE
+set Model constant l_int = 0.75, DOUBLE
 set Model constant x1_init = 0.6, DOUBLE
 set Model constant x2_init = 0.01, DOUBLE
-set Model constant epsilon = __EPS__, DOUBLE
-set Model constant zeta = 0.0, DOUBLE
-set Model constant int_delta = __DEL__, INT
+set Model constant epsilon = 1e-4, DOUBLE
+set Model constant int_delta = 0, INT
 set Model constant x_in_rxn = FALSE, BOOL
-set Model constant tavg_denom = 0, INT

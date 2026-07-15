@@ -53,11 +53,8 @@ public:
   number x1_init;
   number x2_init;
   number epsilon; // small number to avoid division by zero
-  number zeta; // weighting factor for laplacian nonlocalization
   int int_delta;
   bool x_in_rxn;
-  int tavg_denom;
-
   // NiCr Thermo
   NiCrThermo::Isothermal nicr_energy;
 
@@ -75,10 +72,8 @@ public:
         x1_init(get_user_inputs().user_constants.get_double("x1_init")),
         x2_init(get_user_inputs().user_constants.get_double("x2_init")),
         epsilon(get_user_inputs().user_constants.get_double("epsilon")),
-        zeta(get_user_inputs().user_constants.get_double("zeta")),
         int_delta(get_user_inputs().user_constants.get_int("int_delta")),
-        x_in_rxn(get_user_inputs().user_constants.get_bool("x_in_rxn")),
-        tavg_denom(get_user_inputs().user_constants.get_int("tavg_denom"))
+        x_in_rxn(get_user_inputs().user_constants.get_bool("x_in_rxn"))
   {
     nicr_energy.set_temperature(RT / NiCrThermo::R);
   }
@@ -111,7 +106,6 @@ private:
     using std::sin;
     using std::sqrt;
     using std::tanh;
-
     if (index == 0)
       {
         double dist  = x - lx / 2.0;
@@ -129,7 +123,7 @@ private:
         scalar_value = x2_init;
         return;
       }
-    if (index == 3)
+    if (index > 2)
       {
         scalar_value = 0.0;
         return;
@@ -161,65 +155,43 @@ private:
     if (solve_block_id == 0) // n, x
       {
         const ScalarValue n       = variable_list.template get_value<Scalar, OldOne>(0);
-        const ScalarGrad  n_grad  = variable_list.template get_gradient<Scalar, OldOne>(0);
-        const ScalarValue x1      = variable_list.template get_value<Scalar, OldOne>(1);
-        const ScalarGrad  x1_grad = variable_list.template get_gradient<Scalar, OldOne>(1);
-        const ScalarValue x2      = variable_list.template get_value<Scalar, OldOne>(2);
-        const ScalarGrad  x2_grad = variable_list.template get_gradient<Scalar, OldOne>(2);
+        const ScalarValue x1      = variable_list.template get_value<Scalar, OldOne>(8);
+        const ScalarValue x2      = variable_list.template get_value<Scalar, OldOne>(9);
         const ScalarValue rxn     = variable_list.template get_value<Scalar, OldOne>(3);
-        const ScalarGrad  rxn_grad = variable_list.template get_gradient<Scalar, OldOne>(2);
-        const ScalarValue lap_n   = variable_list.template get_value<Scalar, OldOne>(4);
-        const ScalarGrad  grad_lap_n = variable_list.template get_gradient<Scalar, OldOne>(4);
-        const ScalarValue lap_n_coeff = dx * dx / (2.0 * number(dim));
-        ScalarValue mod_n = n;
-        ScalarGrad mod_n_grad = n_grad;
-        switch (tavg_denom)
-          {
-          case 0:
-            mod_n = n + zeta * lap_n_coeff * lap_n;
-            mod_n_grad = n_grad + zeta * lap_n_coeff * grad_lap_n;
-            break;
-          case 1:
-            mod_n = n + dt * rxn/2.0;
-            break;
-          case 2:
-            mod_n = n + dt * rxn;
-            mod_n_grad = n_grad + dt * rxn_grad;
-            break;
-          default:
-            mod_n = n + zeta * lap_n_coeff * lap_n;
-            mod_n_grad = n_grad + zeta * lap_n_coeff * grad_lap_n;
-            break;
-          }
         // n
         variable_list.set_value_term(0, n + dt * rxn);
 
         // x1
-        variable_list.set_value_term(
-            1, x1 + dt * (D1 * x1_grad * mod_n_grad/mod_n
-                      + 8.0 / l_int * (1.0 - n) * D1s * x1_grad * mod_n_grad/mod_n
-                      + rxn * (1.0 - x1) / mod_n));
-        variable_list.set_gradient_term(
-            1, dt * (-(D1 + 8.0 / l_int * n * (1.0 - n)/mod_n * D1s) * x1_grad));
+        variable_list.set_value_term(1, x1 + dt * rxn * (1.0 - x1) / n);
 
         // x2
-        variable_list.set_value_term(2, x2 + dt * (-D2 * x2_grad * mod_n_grad - rxn * (1.0 - x2)) / (1.0 - mod_n));
-        variable_list.set_gradient_term(2, dt * (-D2 * x2_grad));
+        variable_list.set_value_term(2, x2 - dt * rxn * (1.0 - x2) / (1.0 - n));
       }
-    else if (solve_block_id == 1) // lap n
+    else if (solve_block_id == 1) // x diffusion
       {
-        const ScalarGrad  n_grad = variable_list.template get_gradient<Scalar, Current>(0);
-        variable_list.set_gradient_term(4, -n_grad);
+        const ScalarValue n       = variable_list.template get_value<Scalar, Current>(0);
+        const ScalarGrad  n_grad  = variable_list.template get_gradient<Scalar, Current>(0);
+        const ScalarValue x1      = variable_list.template get_value<Scalar, Current>(1);
+        const ScalarGrad  x1_grad = variable_list.template get_gradient<Scalar, Current>(1);
+        const ScalarValue x2      = variable_list.template get_value<Scalar, Current>(2);
+        const ScalarGrad  x2_grad = variable_list.template get_gradient<Scalar, Current>(2);
+        // x1
+        variable_list.set_value_term(
+            8, x1 + dt * (D1 * x1_grad * n_grad
+                      + 8.0 / l_int * (1.0 - n) * D1s * x1_grad * n_grad)/n);
+        variable_list.set_gradient_term(
+            8, dt * (-(D1 + 8.0 / l_int * (1.0 - n) * D1s) * x1_grad));
+
+        // x2
+        variable_list.set_value_term(9, x2 + dt * (-D2 * x2_grad * n_grad) / (1.0 - n));
+        variable_list.set_gradient_term(9, dt * (-D2 * x2_grad));
       }
-    else if (solve_block_id == 2) // rxn
+    else if (solve_block_id == 2) // deltaG
       {
-        number      upper(1.0 - epsilon);
-        number      lower(epsilon);
         const ScalarValue n      = variable_list.template get_value<Scalar, Current>(0);
         const ScalarGrad  n_grad = variable_list.template get_gradient<Scalar, Current>(0);
-        const ScalarValue x1     = variable_list.template get_value<Scalar, Current>(1);
-        const ScalarValue x2     = variable_list.template get_value<Scalar, Current>(2);
-        const ScalarValue lap_n  = variable_list.template get_value<Scalar, Current>(4);
+        const ScalarValue x1     = variable_list.template get_value<Scalar, Current>(8);
+        const ScalarValue x2     = variable_list.template get_value<Scalar, Current>(9);
 
         // deltaG
         const Dual<ScalarValue, 1> x1_dual(x1, dealii::Tensor<1, 1, ScalarValue>({1.0}));
@@ -229,9 +201,23 @@ private:
 
         ScalarValue       mu1_chem = Gm_a.val + (1.0 - x1) * Gm_a.grad[0];
         ScalarValue       mu2_chem = Gm_b.val + (1.0 - x2) * Gm_b.grad[0];
-        const ScalarValue deltaG =
-            (mu2_chem - mu1_chem) / RT + 4.0 * Vmfact * gamma / RT / l_int * (2.0 * n - 1.0)
-            + 8.0 * Vmfact * gamma / RT * l_int / (pi * pi) * lap_n;
+        const ScalarValue deltaG_val =
+            (mu2_chem - mu1_chem) / RT + 4.0 * Vmfact * gamma / RT / l_int * (2.0 * n - 1.0);
+
+        // const ScalarValue deltaG_val = std::log(x2 / x1 ) + deltaG0 +
+        //                                4.0 * Vmfact * gamma / RT / l_int * (2.0 * n - 1.0);
+        variable_list.set_value_term(4, deltaG_val);
+        variable_list.set_gradient_term(4, -n_grad * 8.0 * Vmfact * gamma / RT * l_int / (pi * pi));
+      }
+    else if (solve_block_id == 3) // rxn
+      {
+        number      upper(1.0 - epsilon);
+        number      lower(epsilon);
+        ScalarValue n      = variable_list.template get_value<Scalar, Current>(0);
+        ScalarGrad  n_grad = variable_list.template get_gradient<Scalar, Current>(0);
+        const ScalarValue deltaG = variable_list.template get_value<Scalar, Current>(4);
+        const ScalarValue x1     = variable_list.template get_value<Scalar, Current>(8);
+        const ScalarValue x2     = variable_list.template get_value<Scalar, Current>(9);
         ScalarValue x_prefact(1.0);
         if (x_in_rxn)
           {
@@ -242,7 +228,7 @@ private:
           {
           case 0:
             rxn_val = -n_grad.norm_square() * n * (1.0 - n) *
-               (128.0 * l_int / (pi * pi) / 3.0) * x_prefact * Vmfact * j0 * (-deltaG);
+               (128.0 * l_int / (pi * pi) / 3.0) * Vmfact * j0 * x_prefact * (-deltaG);
             break;
           case 1:
             rxn_val = -n_grad.norm() * Vmfact * j0 * x_prefact * (-deltaG);
@@ -253,25 +239,22 @@ private:
             break;
           default:
             rxn_val = -n_grad.norm_square() * n * (1.0 - n) *
-               (128.0 * l_int / (pi * pi) / 3.0) * Vmfact * x_prefact * j0 * (-deltaG);
+               (128.0 * l_int / (pi * pi) / 3.0) * Vmfact * j0 * x_prefact * (-deltaG);
             break;
           }
         constrain_dvaldt(n, rxn_val, dt, lower, upper);
         variable_list.set_value_term(3, rxn_val);
       }
-    else if (solve_block_id == 3) // pp
+    else if (solve_block_id == 4) // pp
       {
         const ScalarValue n  = variable_list.template get_value<Scalar, Current>(0);
         const ScalarGrad  n_grad = variable_list.template get_gradient<Scalar, Current>(0);
-        const ScalarValue x1 = variable_list.template get_value<Scalar, Current>(1);
-        const ScalarValue x2 = variable_list.template get_value<Scalar, Current>(2);
-        const ScalarValue lap_n = variable_list.template get_value<Scalar, Current>(4);
-        const ScalarValue lap_n_coeff = dx * dx / (2.0 * number(dim));
-        ScalarValue mod_n = n + zeta * lap_n_coeff * lap_n;
-        variable_list.set_value_term(5, mod_n * x1 + (1.0 - mod_n) * x2);
+        const ScalarValue x1 = variable_list.template get_value<Scalar, Current>(8);
+        const ScalarValue x2 = variable_list.template get_value<Scalar, Current>(9);
+        variable_list.set_value_term(5, n * x1 + (1.0 - n) * x2);
         variable_list.set_value_term(6, 4.0 * gamma/l_int * (n * (1.0 - n)
                              + l_int * l_int / (pi * pi) * n_grad.norm_square()));
-        variable_list.set_value_term(7, mod_n * (1.0 - x1));
+        variable_list.set_value_term(7, n * (1.0 - x1));
       }
   }
 

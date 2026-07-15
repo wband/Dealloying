@@ -12,11 +12,13 @@ SWEEP_PARAMETERS = {
  #   "DELTAG0": [1.0],
  #   "X1": [0.6, 0.2],
  #   "X2": [0.01],
-    "L_INT": [0.75, 0.5, 0.4],
+    "L_INT": [0.75, 0.5, 0.4, 0.3],
     "D1S": [0.0, 5.0],
     "DEL": [0, 1, 2],
- #   "TD": [2, 0],
-    "EPS": [1e-4, 1e-5],
+    "EPS": [1e-3, 1e-4, 1e-5],
+    "WT": [0, 1],
+    "XRX": [0, 1],
+    "CX": [True, False],
     # "NEW_PARAM": [100, 200]  <-- Adding a new parameter is now this easy!
 }
 

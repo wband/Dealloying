@@ -34,7 +34,5 @@ set Model constant l_int = __L_INT__, DOUBLE
 set Model constant x1_init = 0.6, DOUBLE
 set Model constant x2_init = 0.01, DOUBLE
 set Model constant epsilon = __EPS__, DOUBLE
-set Model constant zeta = 0.0, DOUBLE
 set Model constant int_delta = __DEL__, INT
 set Model constant x_in_rxn = FALSE, BOOL
-set Model constant tavg_denom = 0, INT
