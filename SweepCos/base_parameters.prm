@@ -1,6 +1,6 @@
 subsection Rectangular mesh
-  set x size = 6.4
-  set y size = 6.4
+  set x size = __LX__
+  set y size = __LX__
   set periodic x = false
   set periodic y = false
   set periodic z = false
@@ -12,7 +12,7 @@ set global refinement = 6
 set mesh adaptivity   = false
 
 set time step = __DT__
-set number steps = 2000000
+set number steps = __MAXITS__
 
 subsection output
   set condition = EQUAL_SPACING
