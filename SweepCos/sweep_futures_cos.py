@@ -121,7 +121,7 @@ def run_single_combination(param_dict):
         last_solution = get_last_solution_index(log_file_path, solution_index)
         if last_solution:
             if is_normalized:
-                output_values.append(last_solution["integrated_value"] / (param_dict["L_INT"]*128.0/10.0))
+                output_values.append(last_solution["integrated_value"] / (param_dict["L_INT"]*(64.0/10.0))**2)
             else:
                 output_values.append(last_solution["integrated_value"])
         else:

@@ -16,7 +16,7 @@ set number steps = 2000000
 
 subsection output
   set condition = EQUAL_SPACING
-  set number = 100
+  set number = 40
   set file type = vtu
 end
 
