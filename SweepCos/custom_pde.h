@@ -114,25 +114,27 @@ private:
     using std::sin;
     using std::sqrt;
     using std::tanh;
-
+    using std::erf;
+    constexpr double pi = 3.14159265359;
+    double ys = ly * 3.0 / 4.0 + amplitude*l_int*std::cos(2.0*pi*x/lx);
+    double ysx = -amplitude*l_int*std::sin(2.0*pi*x/lx)*2.0*pi/lx;
+    double dist  = (ys-y)/std::sqrt(1.0 + ysx*ysx);
+    double phi  = interface(dist);
     if (index == 0)
       {
-        constexpr double pi = 3.14159265359;
-        double ys = ly * 3.0 / 4.0 + amplitude*l_int*std::cos(2.0*pi*x/lx);
-        double ysx = -amplitude*l_int*std::sin(2.0*pi*x/lx)*2.0*pi/lx;
-        double dist  = (ys-y)/std::sqrt(1.0 + ysx*ysx);
-        double phi  = interface(dist);
         scalar_value = max(min(phi, 1.0 - epsilon), epsilon);
         return;
       }
     if (index == 1)
       {
-        scalar_value = x1_init;
+        double diff_prof = max(x2_init, (x1_init - x2_init) * std::erf((ly * 3.0 / 4.0 - y) / (2.0 * l_int)) + x2_init);
+        scalar_value = phi * diff_prof + x2_init * (1.0 - phi);
         return;
       }
     if (index == 2)
       {
-        scalar_value = x2_init;
+        double diff_prof = max(x2_init, (x1_init - x2_init) * std::erf((ly * 3.0 / 4.0 - y) / (2.0 * l_int)) + x2_init);
+        scalar_value = phi * diff_prof + x2_init * (1.0 - phi);
         return;
       }
     if (index == 3)
@@ -146,6 +148,7 @@ private:
                 [[maybe_unused]] const unsigned int       &boundary_id,
                 [[maybe_unused]] const unsigned int       &component,
                 [[maybe_unused]] const dealii::Point<dim> &point,
+                [[maybe_unused]] const SimulationTimer    &sim_timer,
                 [[maybe_unused]] number                   &scalar_value,
                 [[maybe_unused]] number                   &vector_component_value) const override
   {
@@ -222,7 +225,7 @@ private:
         number      upper(1.0 - epsilon);
         number      lower(epsilon);
         number      upper_x(2.0);
-        number      lower_x(1e-8);
+        number      lower_x(1e-5);
         ScalarValue n      = variable_list.template get_value<Scalar, Current>(0);
         ScalarGrad  n_grad = variable_list.template get_gradient<Scalar, Current>(0);
         const ScalarValue x1     = variable_list.template get_value<Scalar, Current>(1);
@@ -255,6 +258,10 @@ private:
             break;
           case 2:
             rxn_val = -n_grad.norm_square() * (8.0 * l_int/(pi*pi)) 
+               * Vmfact * j0 * x_prefact * (-deltaG);
+            break;
+          case 3:
+            rxn_val = -n * (1.0 - n) * (4.0 / l_int) 
                * Vmfact * j0 * x_prefact * (-deltaG);
             break;
           default:
