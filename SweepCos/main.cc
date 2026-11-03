@@ -38,21 +38,18 @@ main(int argc, char *argv[])
       FieldAttributes("x_Ni") //
   };
 
-  SolveBlock main_fields(0, Explicit, Initialized, {0, 1, 2});
+  SolveBlock main_fields(0, Explicit, Initialized, {0, 1, 2, 3});
   main_fields.dependencies_rhs =
       make_dependency_set(fields, {"old_1(n)", "old_1(x1)", "old_1(x2)", "grad(old_1(n))",
-                                   "grad(old_1(x1))", "grad(old_1(x2))", "old_1(rxn)"});
+                                   "grad(old_1(x1))", "grad(old_1(x2))", "old_1(deltaG)"});
 
   SolveBlock deltaG(1, Explicit, Uninitialized, {4});
   deltaG.dependencies_rhs = make_dependency_set(fields, {"n", "grad(n)", "x1", "x2"});
 
-  SolveBlock rxn(2, Explicit, Uninitialized, {3});
-  rxn.dependencies_rhs = make_dependency_set(fields, {"n", "grad(n)", "x1", "x2", "deltaG"});
-
-  SolveBlock pp(3, Explicit, PostProcess, {5, 6, 7});
+  SolveBlock pp(2, Explicit, PostProcess, {5, 6, 7});
   pp.dependencies_rhs = make_dependency_set(fields, {"n", "grad(n)", "x1", "x2"});
 
-  std::vector<SolveBlock> solve_blocks({main_fields, deltaG, rxn, pp});
+  std::vector<SolveBlock> solve_blocks({main_fields, deltaG, pp});
 
   UserInputParameters<dim> user_inputs(cli_options.get_parameters_filename());
   for (const auto &name : {"x1", "x2"})

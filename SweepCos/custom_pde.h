@@ -127,13 +127,13 @@ private:
       }
     if (index == 1)
       {
-        double diff_prof = max(x2_init, (x1_init - x2_init) * std::erf((ly * 3.0 / 4.0 - y) / (2.0 * l_int)) + x2_init);
+        double diff_prof = max(x2_init, (x1_init - x2_init) * std::erf((ly * 3.0 / 4.0 - y) / (4.0 * l_int)) + x2_init);
         scalar_value = phi * diff_prof + x2_init * (1.0 - phi);
         return;
       }
     if (index == 2)
       {
-        double diff_prof = max(x2_init, (x1_init - x2_init) * std::erf((ly * 3.0 / 4.0 - y) / (2.0 * l_int)) + x2_init);
+        double diff_prof = max(x2_init, (x1_init - x2_init) * std::erf((ly * 3.0 / 4.0 - y) / (4.0 * l_int)) + x2_init);
         scalar_value = phi * diff_prof + x2_init * (1.0 - phi);
         return;
       }
@@ -175,63 +175,13 @@ private:
         const ScalarGrad  x1_grad = variable_list.template get_gradient<Scalar, OldOne>(1);
         const ScalarValue x2      = variable_list.template get_value<Scalar, OldOne>(2);
         const ScalarGrad  x2_grad = variable_list.template get_gradient<Scalar, OldOne>(2);
-        const ScalarValue rxn     = variable_list.template get_value<Scalar, OldOne>(3);
         // n
-        variable_list.set_value_term(0, n + dt * rxn);
-
-        // x1
-        variable_list.set_value_term(
-            1, x1 + dt * (D1 * x1_grad * n_grad
-                      + 8.0 / l_int * (1.0 - n) * D1s * x1_grad * n_grad
-                      + rxn * (1.0 - x1))/ n);
-        variable_list.set_gradient_term(
-            1, dt * (-(D1 + 8.0 / l_int * n * (1.0 - n)/n * D1s) * x1_grad));
-
-        // x2
-        variable_list.set_value_term(2, x2 + dt * (-D2 * x2_grad * n_grad - rxn * (1.0 - x2)) / (1.0 - n));
-        variable_list.set_gradient_term(2, dt * (-D2 * x2_grad));
-      }
-    else if (solve_block_id == 1) // delta G
-      {
-        const ScalarValue n      = variable_list.template get_value<Scalar, Current>(0);
-        const ScalarGrad  n_grad = variable_list.template get_gradient<Scalar, Current>(0);
-        const ScalarValue x1     = variable_list.template get_value<Scalar, Current>(1);
-        const ScalarValue x2     = variable_list.template get_value<Scalar, Current>(2);
-
-        // deltaG
-        const Dual<ScalarValue, 1> x1_dual(x1, dealii::Tensor<1, 1, ScalarValue>({1.0}));
-        const Dual<ScalarValue, 1> x2_dual(x2, dealii::Tensor<1, 1, ScalarValue>({1.0}));
-        const Dual<ScalarValue, 1> Gm_a = Gm_alpha(x1_dual);
-        const Dual<ScalarValue, 1> Gm_b = Gm_beta(x2_dual);
-
-        ScalarValue       mu1_chem = Gm_a.val + (1.0 - x1) * Gm_a.grad[0];
-        ScalarValue       mu2_chem = Gm_b.val + (1.0 - x2) * Gm_b.grad[0];
-        const ScalarValue deltaG_val(0.0);
-        if (well_type == 0)
-          {
-            variable_list.set_value_term(4, (mu2_chem - mu1_chem) / RT + 4.0 * Vmfact * gamma / RT / l_int * (2.0 * n - 1.0));
-            variable_list.set_gradient_term(4, -n_grad * 8.0 * Vmfact * gamma / RT * l_int / (pi * pi));
-          }
-        else if (well_type == 1)
-          {
-            const double prefactor = 3.0/std::sqrt(2.0);
-            variable_list.set_value_term(4, (mu2_chem - mu1_chem) / RT
-                + prefactor * Vmfact * gamma / RT / l_int * 8.0 * (4.0 * n * n * n - 6.0 * n * n + 2.0 * n));
-            variable_list.set_gradient_term(4, -n_grad * Vmfact * gamma / RT * l_int * prefactor * 0.5);
-          }
-      }
-    else if (solve_block_id == 2) // rxn
-      {
         number      upper(1.0 - epsilon);
         number      lower(epsilon);
         number      upper_x(2.0);
         number      lower_x(1e-5);
-        ScalarValue n      = variable_list.template get_value<Scalar, Current>(0);
-        ScalarGrad  n_grad = variable_list.template get_gradient<Scalar, Current>(0);
-        const ScalarValue x1     = variable_list.template get_value<Scalar, Current>(1);
-        const ScalarValue x2     = variable_list.template get_value<Scalar, Current>(2);
 
-        ScalarValue deltaG = variable_list.template get_value<Scalar, Current>(4);
+        ScalarValue deltaG = variable_list.template get_value<Scalar, OldOne>(4);
         ScalarValue x_prefact(1.0);
         if (x_in_rxn == 0)
           {
@@ -279,9 +229,51 @@ private:
             constrain_dvaldt(x2, dx2dt, dt, lower_x, upper_x);
             rxn_val = -dx2dt * (1.0-n)/(1.0-x2);
           }
+        variable_list.set_value_term(0, n + dt * rxn_val);
+
+        // x1
+        variable_list.set_value_term(
+            1, x1 + dt * (D1 * x1_grad * n_grad
+                      + 8.0 / l_int * (1.0 - n) * D1s * x1_grad * n_grad
+                      + rxn_val * (1.0 - x1))/ n);
+        variable_list.set_gradient_term(
+            1, dt * (-(D1 + 8.0 / l_int * n * (1.0 - n)/n * D1s) * x1_grad));
+
+        // x2
+        variable_list.set_value_term(2, x2 + dt * (-D2 * x2_grad * n_grad - rxn_val * (1.0 - x2)) / (1.0 - n));
+        variable_list.set_gradient_term(2, dt * (-D2 * x2_grad));
         variable_list.set_value_term(3, rxn_val);
       }
-    else if (solve_block_id == 3) // pp
+    else if (solve_block_id == 1) // delta G
+      {
+        const ScalarValue n      = variable_list.template get_value<Scalar, Current>(0);
+        const ScalarGrad  n_grad = variable_list.template get_gradient<Scalar, Current>(0);
+        const ScalarValue x1     = variable_list.template get_value<Scalar, Current>(1);
+        const ScalarValue x2     = variable_list.template get_value<Scalar, Current>(2);
+
+        // deltaG
+        const Dual<ScalarValue, 1> x1_dual(x1, dealii::Tensor<1, 1, ScalarValue>({1.0}));
+        const Dual<ScalarValue, 1> x2_dual(x2, dealii::Tensor<1, 1, ScalarValue>({1.0}));
+        const Dual<ScalarValue, 1> Gm_a = Gm_alpha(x1_dual);
+        const Dual<ScalarValue, 1> Gm_b = Gm_beta(x2_dual);
+
+        ScalarValue       mu1_chem = Gm_a.val + (1.0 - x1) * Gm_a.grad[0];
+        ScalarValue       mu2_chem = Gm_b.val + (1.0 - x2) * Gm_b.grad[0];
+        const ScalarValue deltaG_val(0.0);
+        if (well_type == 0)
+          {
+            variable_list.set_value_term(4, (mu2_chem - mu1_chem) / RT + 4.0 * Vmfact * gamma / RT / l_int * (2.0 * n - 1.0));
+            variable_list.set_gradient_term(4, -n_grad * 8.0 * Vmfact * gamma / RT * l_int / (pi * pi));
+          }
+        else if (well_type == 1)
+          {
+            const double prefactor = 3.0/std::sqrt(2.0);
+            variable_list.set_value_term(4, (mu2_chem - mu1_chem) / RT
+                + prefactor * Vmfact * gamma / RT / l_int * 8.0 * (4.0 * n * n * n - 6.0 * n * n + 2.0 * n));
+            variable_list.set_gradient_term(4, -n_grad * Vmfact * gamma / RT * l_int * prefactor * 0.5);
+          }
+      }
+    else if (solve_block_id == 2) // pp
       {
         const ScalarValue n  = variable_list.template get_value<Scalar, Current>(0);
         const ScalarGrad  n_grad = variable_list.template get_gradient<Scalar, Current>(0);
