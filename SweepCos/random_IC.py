@@ -7,6 +7,7 @@ import sys
 l_int = 2.0
 amplitude_factor = float(sys.argv[1]) if len(sys.argv) > 2 else 1.0
 erfL = float(sys.argv[2]) if len(sys.argv) > 2 else 1.0
+seedv = int(sys.argv[3]) if len(sys.argv) > 3 else 1990
 def interface(z):
     # Scale and clamp z into [-0.5, 0.5]
     z_clamped = np.clip(z / l_int, -0.5, 0.5)
@@ -23,7 +24,7 @@ Ly = 80.0
 dx = Lx / nx
 
 # Generate symmetric initial signal
-rng = np.random.default_rng(seed=1990)
+rng = np.random.default_rng(seed=seedv)
 h0half = rng.normal(loc=0.0, scale=1.0, size=nx) * amplitude_factor
 h0 = np.concatenate((h0half[:-1], np.flipud(h0half)))
 N = len(h0)  # N = 1025
@@ -36,7 +37,7 @@ freqs = fft.fftfreq(N, d=dx)
 # Note: Physical wave numbers k = 2 * pi * freqs
 # Equivalent to filtering based on grid index inverse wave numbers (2 < |index_diff| < 20)
 q_grid = np.abs(freqs * Lx)  # Index-equivalent grid wavenumber space
-bandpass = (q_grid > 2.0) & (q_grid < 8.0)
+bandpass = (q_grid > 2.0) & (q_grid < 16.0)
 
 hf_filtered = np.where(bandpass, hf, 0.0)
 
