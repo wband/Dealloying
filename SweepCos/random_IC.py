@@ -5,9 +5,12 @@ from scipy.special import erf
 import sys
 
 l_int = 2.0
-amplitude_factor = float(sys.argv[1]) if len(sys.argv) > 2 else 1.0
-erfL = float(sys.argv[2]) if len(sys.argv) > 2 else 1.0
-seedv = int(sys.argv[3]) if len(sys.argv) > 3 else 1990
+#amplitude_factor = float(sys.argv[1]) if len(sys.argv) > 2 else 1.0
+#erfL = float(sys.argv[2]) if len(sys.argv) > 2 else 1.0
+#seedv = int(sys.argv[3]) if len(sys.argv) > 3 else 1990
+amplitude_factor = float(4)
+erfL = float(2)
+seedv = int(1990)
 def interface(z):
     # Scale and clamp z into [-0.5, 0.5]
     z_clamped = np.clip(z / l_int, -0.5, 0.5)
@@ -37,7 +40,7 @@ freqs = fft.fftfreq(N, d=dx)
 # Note: Physical wave numbers k = 2 * pi * freqs
 # Equivalent to filtering based on grid index inverse wave numbers (2 < |index_diff| < 20)
 q_grid = np.abs(freqs * Lx)  # Index-equivalent grid wavenumber space
-bandpass = (q_grid > 2.0) & (q_grid < 16.0)
+bandpass = (q_grid > 2.0) & (q_grid < 8.0)
 
 hf_filtered = np.where(bandpass, hf, 0.0)
 
@@ -77,7 +80,7 @@ x2_inf = 0.01
 
 x1 = field * np.maximum(erf((y0-y[None,:]) / erfL) * (x1_inf - x2_inf), 0.0) + x2_inf
 
-plt.imshow(field)
+plt.imshow(x1)
 plt.colorbar()
 plt.show()
 
