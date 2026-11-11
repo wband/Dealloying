@@ -1,0 +1,35 @@
+{
+  "database_directory": "./",
+  "database_name": "solution_*.vtu database",
+  "frame_directory": "./x_total",
+  "gapless": true,
+  "label_axes": false,
+  "scalar_expressions": {
+    "cfme1": "conn_cmfe(<[0]i:n>, <mesh>)"
+  },
+  "pseudocolor": {
+    "x_total": {
+      "color_table": "jetlight",
+      "invert": false,
+      "legend": false,
+      "use_minmax": true,
+      "min": 0.0,
+      "max": 0.2
+    }
+  },
+  "contour": {
+    "cfme1": {
+      "values": 0.5,
+      "legend": false,
+      "color": #000000
+    },
+  "contour": {
+    "n": {
+      "values": 0.5,
+      "legend": false,
+      "color": #FFFFFF
+    }
+  },
+  "show_time": false,
+  "view": "windowless"
+}
